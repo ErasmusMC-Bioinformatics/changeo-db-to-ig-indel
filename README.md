@@ -3,7 +3,7 @@ Script that creates valid Ig-Indel input from a Change-O DB and fastq file and r
 
     usage: changeo-db-to-ig-indel.py [-h] -cdb CHANGE_O_DB --fastq FASTQ -o
                                      OUTPUT_DIR [--mafft MAFFT]
-                                     [--ig-indel_jar IG_INDEL_JAR]
+                                     [--ig-indel-jar IG_INDEL_JAR]
                                      [--ig-indel-num-seqs IG_INDEL_NUM_SEQS]
                                      [--ig-indel-hom-length IG_INDEL_HOM_LENGTH]
                                      [--ig-indel-min-quality IG_INDEL_MIN_QUALITY]
