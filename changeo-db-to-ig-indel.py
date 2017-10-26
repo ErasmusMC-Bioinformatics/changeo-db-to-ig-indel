@@ -145,8 +145,8 @@ def get_seqs_from_file(f, fmt="fasta"):
 def find_sequences_without_indels(seqs):
     """Find sequences with indels ('-'), seqs is a list with Biopython sequences"""
     complete_germline = str(seqs[0].seq)
+    #print complete_germline
     passed_seqs = [seqs[0].id]
-    germline_dashes = [dash for dash in list(dash_regex.finditer(complete_germline))]
     for b_seq in seqs[1:]:
         seq = str(b_seq.seq)
         dashes = [i for i, b in enumerate(seq) if b != "-"]
@@ -156,13 +156,15 @@ def find_sequences_without_indels(seqs):
         germline = complete_germline[seq_start + 1:seq_end]
         germline_dashes = [dash for dash in list(dash_regex.finditer(germline))]
         skip_to_next = False
+        #print "--------------------", b_seq.id, "--------------------"
+        #print seq_start, seq_end
+        #print seq
+        #print germline
         for dash in germline_dashes:
             if seq[dash.start()] != "-":
                 skip_to_next = True
-                #print b_seq.id, dash.start(), germline[dash.start()], seq[dash.start()]
-                #print seq
-                #print germline
                 #print " " * dash.start() + "^"
+                #print dash.start(), germline[dash.start()], seq[dash.start()]
                 break
         if skip_to_next:
             continue
@@ -170,10 +172,8 @@ def find_sequences_without_indels(seqs):
         for dash in seq_dashes:
             if germline[dash.start()] != "-":
                 skip_to_next = True
-                #print b_seq.id, dash.start(), germline[dash.start()], seq[dash.start()]
-                #print seq
-                #print germline
                 #print " " * dash.start() + "^"
+                #print dash.start(), germline[dash.start()], seq[dash.start()]
                 break
         if skip_to_next:
             continue
@@ -334,7 +334,8 @@ def main():
         trimmed_seqs_in_clone.append(seq_record)
 
         last_clone = clone
-        last_germline = trimmed_germline
+        if len(trimmed_germline) > len(last_germline):
+            last_germline = trimmed_germline
 
     write_fasta_qual_files(last_germline, trimmed_seqs_in_clone, out_dir, last_clone)  # again for last clone
 
@@ -449,6 +450,8 @@ def main():
         f_path = os.path.join(out_dir, f)
         for out_seq in SeqIO.parse(f_path, 'fasta'):
             id_set.add(out_seq.id)
+
+    logging.info("{0} sequences passed filtering".format(len(id_set)))
 
     with open(output_fasta_file, 'w') as output_fasta:  # generate the new fasta file with the ids from the "_out.fasta" files
         for ID, in_seq in iter_file(input_file, ["SEQUENCE_ID", "SEQUENCE_INPUT"]):
