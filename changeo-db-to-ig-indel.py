@@ -298,8 +298,9 @@ def main():
     clones = set()  # store the complete/valid clones in case all seqs of a clone are not in the fastq
     last_clone = 1
     seqs_not_in_fastq = 0
-    last_germline = ""
+    lowest_germline_start = sys.maxint
     trimmed_seqs_in_clone = []
+    last_germline = ""
     for ID, in_seq, clone, seq, germline in iter_file(input_file, ["SEQUENCE_ID", "SEQUENCE_INPUT", "CLONE", "SEQUENCE_IMGT", "GERMLINE_IMGT"]):
         if ID not in id_to_fastq_dict:
             logging.warning("{0} in Change-O DB but not in fastq".format(ID))
@@ -317,8 +318,14 @@ def main():
 
         if clone != last_clone:  # new clone means we can write the last clone to fasta/qual files
             logging.debug("Different clone, writing clone {0} to fasta/qual files".format(last_clone))
-            write_fasta_qual_files(last_germline, trimmed_seqs_in_clone, out_dir, last_clone)
+            new_germline = last_germline[lowest_germline_start:].replace(".", "")
+            write_fasta_qual_files(new_germline, trimmed_seqs_in_clone, out_dir, last_clone)
             trimmed_seqs_in_clone = []
+            lowest_germline_start = sys.maxint
+
+        if seq_leading_points < lowest_germline_start:
+            #logging.debug("new lowest germline start from {0} to {1}".format(lowest_germline_start, seq_leading_points))
+            lowest_germline_start = seq_leading_points
 
         seq_record = SeqRecord(Seq(trimmed_seq, generic_dna), id=ID, description="")
         seq_record.letter_annotations["phred_quality"] = trimmed_quality
@@ -334,10 +341,11 @@ def main():
         trimmed_seqs_in_clone.append(seq_record)
 
         last_clone = clone
-        if len(trimmed_germline) > len(last_germline):
-            last_germline = trimmed_germline
+        last_germline = germline
 
-    write_fasta_qual_files(last_germline, trimmed_seqs_in_clone, out_dir, last_clone)  # again for last clone
+    new_germline = last_germline[lowest_germline_start:].replace(".", "")
+
+    write_fasta_qual_files(new_germline, trimmed_seqs_in_clone, out_dir, last_clone)  # again for last clone
 
     for clone in clones:  # for all the complete clones, fix the Ns in the germline
         logging.debug("---------------- clone {0} --------------".format(clone))
@@ -347,9 +355,9 @@ def main():
         discarded_seqs = []
 
         run_mafft(clone_fasta_file, clone_pir_file, mafft_bin)
-
         logging.info("Fixing N|n nucleotides in G.L sequence for clone {0}".format(clone))
         clone_aligned = AlignIO.read(clone_pir_file, "fasta")
+
         for seq_record in clone_aligned:  # add the quality scores back to the seqs so consensus nt can use quality
             if seq_record.id == "G.L":
                 continue
